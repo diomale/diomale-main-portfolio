@@ -258,7 +258,7 @@ if (contactForm && formStatus) {
 
 
 // Interactive Infinite Carousel Logic
-function initCarousel(carouselSelector, trackSelector) {
+function initCarousel(carouselSelector, trackSelector, enableAutoScroll = true) {
   const carousel = document.querySelector(carouselSelector);
   const track = document.querySelector(trackSelector);
 
@@ -266,7 +266,7 @@ function initCarousel(carouselSelector, trackSelector) {
     let isDown = false;
     let startX;
     let scrollLeft;
-    let isPaused = false;
+    let isPaused = !enableAutoScroll; // Start paused if auto-scroll is disabled
     const scrollSpeed = 0.8;
     let animationId;
     let currentScroll = 0;
@@ -274,7 +274,7 @@ function initCarousel(carouselSelector, trackSelector) {
     const getHalfWidth = () => track.scrollWidth / 2;
 
     const autoScroll = () => {
-      if (!isPaused && !isDown) {
+      if (enableAutoScroll && !isPaused && !isDown) {
         currentScroll += scrollSpeed;
         const halfWidth = getHalfWidth();
         if (currentScroll >= halfWidth) {
@@ -287,21 +287,24 @@ function initCarousel(carouselSelector, trackSelector) {
       animationId = requestAnimationFrame(autoScroll);
     };
 
-    animationId = requestAnimationFrame(autoScroll);
+    // Only start the animation loop if auto-scroll is enabled
+    if (enableAutoScroll) {
+      animationId = requestAnimationFrame(autoScroll);
+    }
 
     carousel.addEventListener("mouseenter", () => {
-      isPaused = true;
+      if (enableAutoScroll) isPaused = true;
     });
 
     carousel.addEventListener("mouseleave", () => {
-      if (!isDown) isPaused = false;
+      if (enableAutoScroll && !isDown) isPaused = false;
       isDown = false;
       carousel.classList.remove("is-dragging");
     });
 
     carousel.addEventListener("mousedown", (e) => {
       isDown = true;
-      isPaused = true;
+      if (enableAutoScroll) isPaused = true;
       carousel.classList.add("is-dragging");
       startX = e.pageX - carousel.offsetLeft;
       scrollLeft = carousel.scrollLeft;
@@ -310,7 +313,7 @@ function initCarousel(carouselSelector, trackSelector) {
     window.addEventListener("mouseup", () => {
       if (isDown) {
         isDown = false;
-        isPaused = false;
+        if (enableAutoScroll) isPaused = false;
         carousel.classList.remove("is-dragging");
       }
     });
@@ -353,17 +356,19 @@ function initCarousel(carouselSelector, trackSelector) {
     }, { passive: false });
 
     carousel.addEventListener("touchstart", () => {
-      isPaused = true;
+      if (enableAutoScroll) isPaused = true;
     }, { passive: true });
 
     carousel.addEventListener("touchend", () => {
-      setTimeout(() => { 
-        if (!isDown) isPaused = false; 
-      }, 2000);
+      if (enableAutoScroll) {
+        setTimeout(() => { 
+          if (!isDown) isPaused = false; 
+        }, 2000);
+      }
     }, { passive: true });
   }
 }
 
 // Initialize Carousels
-initCarousel(".projects-carousel", ".projects-track");
-initCarousel(".certificate-carousel", ".certificate-track");
+initCarousel(".projects-carousel", ".projects-track", true); // Auto-scroll ON
+initCarousel(".certificate-carousel", ".certificate-track", false); // Auto-scroll OFF
