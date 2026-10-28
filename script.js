@@ -139,10 +139,13 @@ const modalTitle = document.getElementById("modal-title");
 const modalBody = document.getElementById("modal-body");
 const modalClose = document.querySelector(".modal-close");
 const modalOverlay = document.querySelector(".modal-overlay");
+const modalContainer = document.querySelector(".modal-container");
+let lastFocusedElement = null;
 
 function openModal(src, title) {
   if (!certModal || !modalTitle || !modalBody) return;
 
+  lastFocusedElement = document.activeElement;
   modalTitle.textContent = title;
 
   const wraps = modalBody.querySelectorAll(".cert-img-wrap");
@@ -154,6 +157,7 @@ function openModal(src, title) {
   certModal.classList.add("is-open");
   certModal.setAttribute("aria-hidden", "false");
   document.body.style.overflow = "hidden";
+  if (modalClose) modalClose.focus();
 }
 
 function closeModal() {
@@ -163,12 +167,47 @@ function closeModal() {
   certModal.setAttribute("aria-hidden", "true");
   document.body.style.overflow = "";
 
-  const wraps = modalBody.querySelectorAll(".cert-img-wrap");
+  const wraps = modalBody ? modalBody.querySelectorAll(".cert-img-wrap") : [];
   wraps.forEach((w) => w.classList.remove("is-active"));
+
+  if (lastFocusedElement && typeof lastFocusedElement.focus === "function") {
+    lastFocusedElement.focus();
+  }
+  lastFocusedElement = null;
+}
+
+const modalFocusableSelector = [
+  "button:not([disabled])",
+  "[href]",
+  "input:not([disabled])",
+  "textarea:not([disabled])",
+  "select:not([disabled])",
+  '[tabindex]:not([tabindex="-1"])',
+].join(", ");
+
+function trapModalFocus(event) {
+  if (event.key !== "Tab") return;
+  const focusables = modalContainer ? Array.from(modalContainer.querySelectorAll(modalFocusableSelector)) : [];
+  if (focusables.length === 0) return;
+
+  const first = focusables[0];
+  const last = focusables[focusables.length - 1];
+  const active = document.activeElement;
+
+  if (event.shiftKey) {
+    if (active === first || !modalContainer.contains(active)) {
+      event.preventDefault();
+      last.focus();
+    }
+  } else if (active === last || !modalContainer.contains(active)) {
+    event.preventDefault();
+    first.focus();
+  }
 }
 
 if (modalClose) modalClose.addEventListener("click", closeModal);
 if (modalOverlay) modalOverlay.addEventListener("click", closeModal);
+if (modalContainer) modalContainer.addEventListener("keydown", trapModalFocus);
 
 window.addEventListener("keydown", (e) => {
   if (e.key === "Escape" && certModal && certModal.classList.contains("is-open")) {
@@ -263,6 +302,31 @@ function initCarousel(carouselSelector, trackSelector, enableAutoScroll = true) 
   const track = document.querySelector(trackSelector);
 
   if (carousel && track) {
+    // Clone cards once so the auto-scrolling carousel loops seamlessly.
+    if (enableAutoScroll) {
+      const cards = Array.from(track.children).filter(
+        (child) => child.classList.contains("project-card") || child.classList.contains("certificate-card")
+      );
+
+      cards.forEach((card) => {
+        const clone = card.cloneNode(true);
+        clone.setAttribute("aria-hidden", "true");
+        clone.classList.remove("reveal");
+        clone.style.transitionDelay = "";
+        track.appendChild(clone);
+      });
+    }
+
+    carousel.addEventListener("keydown", (event) => {
+      if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        carousel.scrollBy({ left: -carousel.clientWidth * 0.8, behavior: "smooth" });
+      } else if (event.key === "ArrowRight") {
+        event.preventDefault();
+        carousel.scrollBy({ left: carousel.clientWidth * 0.8, behavior: "smooth" });
+      }
+    });
+
     let isDown = false;
     let startX;
     let scrollLeft;

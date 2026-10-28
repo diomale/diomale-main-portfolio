@@ -1,0 +1,21 @@
+# OS / IDE
+.DS_Store
+Thumbs.db
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# Dependencies
+node_modules/
+
+# Logs
+*.log
+
+# Editor
+.vscode/
+.idea/
+
+# Misc
+*.tmp
